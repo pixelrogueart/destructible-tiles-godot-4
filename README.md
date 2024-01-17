@@ -1,5 +1,7 @@
 # Project Title
-Destructible tilesets for Godot 4.
+Destructible tiles for Godot 4!
+
+If you have any questions feel free to reach me at pixelrogueart@gmail.com!
 
 ## Features
 - Destructible Tileset
@@ -7,5 +9,6 @@ Destructible tilesets for Godot 4.
 - Physics particles
 
 ## Prerequisites
-Before you begin, ensure you have met the following requirements:
-- Requirement 1 (e.g., Godot 4)
+Ensure you have met the following requirements:
+- Godot 4
+
