@@ -1,0 +1,14 @@
+{
+	"DIRT":{
+		"PARTICLE_TYPE":"DIRT",
+	},
+	"STONE":{
+		"PARTICLE_TYPE":"STONE",
+	},
+	"SAND":{
+		"PARTICLE_TYPE":"DIRT",
+	},
+	"BRICK":{
+		"PARTICLE_TYPE":"STONE",
+	}
+}

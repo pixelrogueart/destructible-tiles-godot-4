@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3 uid="uid://djibg3axfgwfv"]
+
+[ext_resource type="Texture2D" uid="uid://bqjc0to2hxas6" path="res://resources/dirts.png" id="1_4o1ef"]
+[ext_resource type="Script" path="res://assets/physics-block/BlockParticle.gd" id="1_wnavl"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6a7cj"]
+size = Vector2(4, 4)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2q6x4"]
+atlas = ExtResource("1_4o1ef")
+region = Rect2(0, 0, 8, 8)
+
+[node name="Gib" type="RigidBody2D"]
+collision_layer = 0
+script = ExtResource("1_wnavl")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_6a7cj")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("AtlasTexture_2q6x4")
+
+[node name="Timer" type="Timer" parent="."]
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
