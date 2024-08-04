@@ -1,14 +1,22 @@
 {
 	"DIRT":{
 		"PARTICLE_TYPE":"DIRT",
+		"HEALTH": 2,
+		"ENDURANCE": 3,
 	},
 	"STONE":{
 		"PARTICLE_TYPE":"STONE",
+		"HEALTH": 5,
+		"ENDURANCE": 6,
 	},
 	"SAND":{
 		"PARTICLE_TYPE":"DIRT",
+		"HEALTH": 1,
+		"ENDURANCE": 2
 	},
-	"BRICK":{
+	"BLACKROCK":{
 		"PARTICLE_TYPE":"STONE",
+		"HEALTH": 100,
+		"ENDURANCE": 100,
 	}
 }
