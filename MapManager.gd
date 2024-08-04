@@ -1,26 +1,25 @@
+class_name MapManager
 extends Node2D
 
 @onready var tilemap = $TileMap
 @onready var check_timer: Timer = $CheckTimer
+@onready var fall_timer: Timer = $FallTimer
 var check_queue = 0
+var blocks_to_fall = []
 
 func _ready():
 	SignalManager.connect("SPAWN_BLOCK_PARTICLES", spawn_block_particles)
+	GameManager.map_manager = self
 	randomize()
 
 func _unhandled_input(event):
 	if event.is_action_pressed("LEFT_MOUSE"):
 		damage_block(get_global_mouse_position())
 	if event.is_action_pressed("MIDDLE_MOUSE"):
-		fall_disconnected_blobs()
+		var center_pos = tilemap.local_to_map(get_global_mouse_position())
+		fall_disconnected_blobs(center_pos, 32)
 	if event.is_action_pressed("RIGHT_MOUSE"):
 		fall_block(get_global_mouse_position())
-
-func _process(delta):
-	if check_queue > 0 and check_timer.is_stopped():
-		check_timer.start(0.2)
-	elif check_queue < 0:
-		check_timer.stop()
 
 func damage_block(pos, damage = 1):
 	if pos is Vector2:
@@ -115,13 +114,15 @@ func is_within_tilemap_bounds(pos: Vector2i) -> bool:
 	var used_rect = tilemap.get_used_rect()
 	return pos.x >= used_rect.position.x and pos.x < used_rect.end.x and pos.y >= used_rect.position.y and pos.y < used_rect.end.y
 
-func fall_disconnected_blobs():
+func fall_disconnected_blobs(center_pos: Vector2i, range: int):
 	var visited = {}
 	var blobs_to_fall = []
 
-	for x in range(tilemap.get_used_rect().position.x, tilemap.get_used_rect().end.x):
-		for y in range(tilemap.get_used_rect().position.y, tilemap.get_used_rect().end.y):
+	for x in range(center_pos.x - range, center_pos.x + range + 1):
+		for y in range(center_pos.y - range, center_pos.y + range + 1):
 			var pos = Vector2i(x, y)
+			if !is_within_tilemap_bounds(pos):
+				continue
 			if pos in visited:
 				continue
 
@@ -133,4 +134,16 @@ func fall_disconnected_blobs():
 
 	for blob in blobs_to_fall:
 		for pos in blob:
-			fall_block(pos)
+			if not pos in blocks_to_fall:
+				blocks_to_fall.append(pos)
+
+func _on_check_timer_timeout():
+	fall_disconnected_blobs(GameManager.main_camera.global_position, 32)
+	if blocks_to_fall.size() > 0:
+		if fall_timer.is_stopped():
+			fall_timer.start(0.05)
+
+
+func _on_fall_timer_timeout():
+	var pos = blocks_to_fall.pop_front()
+	fall_block(pos)

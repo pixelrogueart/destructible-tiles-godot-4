@@ -22,6 +22,7 @@ GlobalTools="*res://scripts/GlobalTools.gd"
 EffectsManager="*res://scripts/EffectsManager.gd"
 AudioManager="*res://scripts/AudioManager.gd"
 SignalManager="*res://scripts/SignalManager.gd"
+GameManager="*res://scripts/GameManager.gd"
 
 [display]
 
