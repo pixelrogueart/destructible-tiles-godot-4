@@ -1,23 +1,41 @@
 class_name MapManager
 extends Node2D
 
-@onready var tilemap = $TileMap
+@onready var tilemap = $".."
 @onready var check_timer: Timer = $CheckTimer
 @onready var fall_timer: Timer = $FallTimer
 var check_queue = 0
 var blocks_to_fall = []
+var destroy_per_check = 3
+
+var max_particles = 100
+var current_particles = []
 
 func _ready():
+	check_timer.connect("timeout",_on_check_timer_timeout)
+	fall_timer.connect("timeout",_on_fall_timer_timeout)
 	SignalManager.connect("SPAWN_BLOCK_PARTICLES", spawn_block_particles)
 	GameManager.map_manager = self
 	randomize()
+
+func _process(delta: float) -> void:
+	check_particles()
+
+func check_particles():
+	if current_particles.size() > max_particles:
+		if !is_instance_valid(current_particles[0]):
+			current_particles.pop_back()
+		else:
+			current_particles[0].queue_free()
+			current_particles.pop_back()
 
 func _unhandled_input(event):
 	if event.is_action_pressed("LEFT_MOUSE"):
 		damage_block(get_global_mouse_position())
 	if event.is_action_pressed("MIDDLE_MOUSE"):
 		var center_pos = tilemap.local_to_map(get_global_mouse_position())
-		fall_disconnected_blobs(center_pos, 32)
+		#fall_disconnected_blobs(center_pos, 8)
+		fall_region(center_pos,8)
 	if event.is_action_pressed("RIGHT_MOUSE"):
 		fall_block(get_global_mouse_position())
 
@@ -26,6 +44,7 @@ func damage_block(pos, damage = 1):
 		pos = tilemap.local_to_map(pos)
 	var atlas_coord = tilemap.get_cell_atlas_coords(0, pos, true)
 	var block_type = retrieve_terrain(pos)
+	
 	if block_type == "BLACKROCK":
 		printerr("Cannot damage blackrock.")
 		return
@@ -50,6 +69,16 @@ func fall_block(pos):
 		destroy_block(pos, atlas_coord, block_type, false)
 		EffectsManager.play_vfx_at("SMOKE", tilemap.map_to_local(pos))
 
+func fall_region(center: Vector2, radius: int):
+	var tile_center = tilemap.local_to_map(center)
+	for x in range(tile_center.x - radius, tile_center.x + radius + 1):
+		for y in range(tile_center.y - radius, tile_center.y + radius + 1):
+			var tile_pos = Vector2i(x, y)
+			if not is_within_tilemap_bounds(tile_pos):
+				continue
+			if tile_pos.distance_to(tile_center) <= float(radius):
+				fall_block(tile_pos)
+
 func destroy_block(pos, atlas_coord, block_type = "DIRT", apply_force = true):
 	tilemap.set_cell(0, pos, 0, Vector2(-1, -1))
 	var physics_block = load("res://assets/physics-block/PhysicsBlock.tscn").instantiate()
@@ -60,7 +89,7 @@ func destroy_block(pos, atlas_coord, block_type = "DIRT", apply_force = true):
 func retrieve_terrain(pos):
 	if pos is Vector2:
 		pos = tilemap.local_to_map(pos)
-	var tile_data = tilemap.get_cell_tile_data(0, pos, true)
+	var tile_data = tilemap.get_cell_tile_data(0, pos, false)
 	var terrain_string
 	if tile_data:
 		var terrain_set = tile_data.terrain_set
@@ -79,6 +108,7 @@ func spawn_block_particles(block_type = "DIRT", max_particles = 6, pos = Vector2
 		block_particle.pos = pos
 		block_particle.type = block_type
 		block_particle.start_collision = start_collision
+		current_particles.push_back(block_particle)
 
 func find_blob(start_pos: Vector2i, block_type: String, visited: Dictionary) -> Dictionary:
 	var stack = [start_pos]
@@ -86,28 +116,23 @@ func find_blob(start_pos: Vector2i, block_type: String, visited: Dictionary) -> 
 		"positions": [],
 		"connected_to_blackrock": false
 	}
-
 	while stack.size() > 0:
 		var current_pos = stack.pop_back()
 		if current_pos in visited:
 			continue
-
 		visited[current_pos] = true
 		blob["positions"].append(current_pos)
-
 		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			var neighbor_pos = current_pos + offset
 			if !is_within_tilemap_bounds(neighbor_pos):
 				continue
 			if neighbor_pos in visited:
 				continue
-
 			var neighbor_block_type = retrieve_terrain(neighbor_pos)
 			if neighbor_block_type == block_type:
 				stack.append(neighbor_pos)
 			elif neighbor_block_type == "BLACKROCK":
 				blob["connected_to_blackrock"] = true
-
 	return blob
 
 func is_within_tilemap_bounds(pos: Vector2i) -> bool:
@@ -117,7 +142,6 @@ func is_within_tilemap_bounds(pos: Vector2i) -> bool:
 func fall_disconnected_blobs(center_pos: Vector2i, range: int):
 	var visited = {}
 	var blobs_to_fall = []
-
 	for x in range(center_pos.x - range, center_pos.x + range + 1):
 		for y in range(center_pos.y - range, center_pos.y + range + 1):
 			var pos = Vector2i(x, y)
@@ -125,13 +149,11 @@ func fall_disconnected_blobs(center_pos: Vector2i, range: int):
 				continue
 			if pos in visited:
 				continue
-
 			var block_type = retrieve_terrain(pos)
 			if block_type and block_type != "BLACKROCK":
 				var blob = find_blob(pos, block_type, visited)
 				if not blob["connected_to_blackrock"]:
 					blobs_to_fall.append(blob["positions"])
-
 	for blob in blobs_to_fall:
 		for pos in blob:
 			if not pos in blocks_to_fall:
@@ -143,7 +165,11 @@ func _on_check_timer_timeout():
 		if fall_timer.is_stopped():
 			fall_timer.start(0.05)
 
-
 func _on_fall_timer_timeout():
-	var pos = blocks_to_fall.pop_front()
-	fall_block(pos)
+	blocks_to_fall.shuffle()
+	for i in destroy_per_check:
+		if blocks_to_fall.is_empty():
+			return
+		var pos = blocks_to_fall.pop_front()
+		if pos:
+			fall_block(pos)

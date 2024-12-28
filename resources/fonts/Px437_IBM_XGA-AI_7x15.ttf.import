@@ -15,6 +15,7 @@ dest_files=["res://.godot/imported/Px437_IBM_XGA-AI_7x15.ttf-c7bc9db0be626625552
 Rendering=null
 antialiasing=1
 generate_mipmaps=false
+disable_embedded_bitmaps=true
 multichannel_signed_distance_field=false
 msdf_pixel_range=8
 msdf_size=48
